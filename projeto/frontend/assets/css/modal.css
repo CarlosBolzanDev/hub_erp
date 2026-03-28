@@ -1,0 +1,1 @@
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center}.modal{background:var(--card);padding:16px;border-radius:8px;min-width:320px;max-width:760px}.modal-actions{display:flex;justify-content:flex-end;gap:8px}
