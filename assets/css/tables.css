@@ -1,0 +1,6 @@
+.table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; min-width: 760px; }
+th,td { border-bottom: 1px solid var(--border); text-align: left; padding: .65rem; vertical-align: top; }
+th { background: color-mix(in oklab, var(--bg-soft), #000 4%); font-size: .85rem; }
+tr:hover td { background: color-mix(in oklab, var(--bg-soft), #000 7%); }
+.table-actions { display: flex; gap: .35rem; }

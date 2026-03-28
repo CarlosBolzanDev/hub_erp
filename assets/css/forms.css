@@ -1,0 +1,11 @@
+.input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text);
+  border-radius: 10px;
+  padding: .6rem .7rem;
+}
+label { font-size: .85rem; color: var(--muted); display: block; margin-bottom: .25rem; }
+.form-grid { display: grid; gap: .6rem; grid-template-columns: repeat(2, minmax(180px,1fr)); }
+.form-group { display: flex; flex-direction: column; gap: .2rem; }
