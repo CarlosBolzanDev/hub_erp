@@ -1,0 +1,1 @@
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.card{background:var(--card);padding:12px;border:1px solid var(--border);border-radius:8px}.toast{position:fixed;right:16px;bottom:16px;background:#16a34a;color:#fff;padding:8px 12px;border-radius:6px}.toast.error{background:#dc2626}
