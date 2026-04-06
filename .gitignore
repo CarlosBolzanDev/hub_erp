@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+project/output/*
+!project/output/.gitkeep
+project/input/*.xls
+project/input/*.xlsx
