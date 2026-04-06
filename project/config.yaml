@@ -1,0 +1,11 @@
+input_dir: "project/input"
+output_dir: "project/output"
+safety_factor: 1.5
+analysis_window_days: 180
+risk_coverage_days: 7
+low_rotation_days: 30
+excess_stock_days: 90
+files:
+  vendas_keywords: ["vendas", "mov", "movimentacao"]
+  produtos_keywords: ["produtos", "cadastro", "itens"]
+  estoque_keywords: ["estoque", "saldo"]
