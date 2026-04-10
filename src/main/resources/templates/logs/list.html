@@ -1,0 +1,3 @@
+<!DOCTYPE html><html lang="pt-br" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Logs</title><link rel="stylesheet" href="/css/style.css"></head>
+<body><div class="container"><aside class="sidebar"><h2>Hub ERP</h2><a href="/dashboard">Dashboard</a><a href="/logs">Logs</a></aside>
+<main class="main"><h1>Logs de Atividade</h1><table><tr><th>ID</th><th>Usuário</th><th>Operação</th><th>Resultado</th><th>Data</th></tr><tr th:each="l : ${logs.content}"><td th:text="${l.id}"></td><td th:text="${l.username}"></td><td th:text="${l.operation}"></td><td th:text="${l.result}"></td><td th:text="${l.createdAt}"></td></tr></table></main></div></body></html>

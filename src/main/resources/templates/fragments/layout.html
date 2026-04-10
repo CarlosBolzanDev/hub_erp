@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} ?: 'Hub ERP'">Hub ERP</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <aside class="sidebar">
+        <h2>Hub ERP</h2>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/users">Usuários</a>
+        <a href="/categories">Categorias</a>
+        <a href="/products">Produtos</a>
+        <a href="/orders">Pedidos</a>
+        <a href="/logs">Logs</a>
+        <a href="/swagger-ui/index.html">Swagger</a>
+        <form th:action="@{/logout}" method="post"><button type="submit">Sair</button></form>
+    </aside>
+    <main class="main" th:fragment="content"></main>
+</div>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

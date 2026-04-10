@@ -1,0 +1,4 @@
+<!DOCTYPE html><html lang="pt-br" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Categorias</title><link rel="stylesheet" href="/css/style.css"></head>
+<body><div class="container"><aside class="sidebar"><h2>Hub ERP</h2><a href="/dashboard">Dashboard</a><a href="/categories">Categorias</a></aside>
+<main class="main"><h1>Categorias</h1><table><tr><th>ID</th><th>Nome</th><th>Descrição</th></tr><tr th:each="c : ${categories.content}"><td th:text="${c.id}"></td><td th:text="${c.name}"></td><td th:text="${c.description}"></td></tr></table>
+<form method="post" action="/categories"><input name="name" required placeholder="Nome"><input name="description" placeholder="Descrição"><button>Salvar</button></form></main></div></body></html>
