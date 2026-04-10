@@ -1,0 +1,6 @@
+<!DOCTYPE html><html lang="pt-br" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Usuários</title><link rel="stylesheet" href="/css/style.css"></head>
+<body><div class="container"><aside class="sidebar"><h2>Hub ERP</h2><a href="/dashboard">Dashboard</a><a href="/users">Usuários</a><a href="/categories">Categorias</a><a href="/products">Produtos</a><a href="/orders">Pedidos</a><a href="/logs">Logs</a></aside>
+<main class="main"><h1>Usuários</h1><form method="get"><input name="search" placeholder="Buscar" th:value="${search}"><button>Pesquisar</button></form>
+<table><tr><th>ID</th><th>Nome</th><th>Username</th><th>Email</th><th>Role</th></tr><tr th:each="u : ${users.content}"><td th:text="${u.id}"></td><td th:text="${u.name}"></td><td th:text="${u.username}"></td><td th:text="${u.email}"></td><td th:text="${u.role}"></td></tr></table>
+<h3>Novo usuário</h3><form method="post" action="/users"><input name="name" placeholder="Nome" required><input name="username" placeholder="Username" required><input name="email" type="email" placeholder="Email" required><input name="password" type="password" required><select name="role"><option th:each="r: ${roles}" th:value="${r}" th:text="${r}"></option></select><label><input type="checkbox" name="active" checked> Ativo</label><button>Salvar</button></form>
+</main></div></body></html>
