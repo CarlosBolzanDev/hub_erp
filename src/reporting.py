@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 import pandas as pd
 
@@ -26,6 +26,7 @@ def generate_executive_insights(
     top_products: pd.DataFrame,
     top_clients: pd.DataFrame,
     outlier_rate: float,
+    comparison_kpis: Optional[pd.DataFrame] = None,
 ) -> str:
     trend = "estável"
     if len(monthly) >= 2:
@@ -34,6 +35,16 @@ def generate_executive_insights(
 
     product = top_products.iloc[0]["cod_produto"] if len(top_products) else "N/A"
     client = top_clients.iloc[0]["cod_cliente"] if len(top_clients) else "N/A"
+
+    comp_section = ""
+    if comparison_kpis is not None and not comparison_kpis.empty:
+        best = comparison_kpis.sort_values("delta_abs", ascending=False).iloc[0]
+        worst = comparison_kpis.sort_values("delta_abs", ascending=True).iloc[0]
+        comp_section = (
+            "\n## Comparação entre períodos\n"
+            f"- Maior ganho absoluto: **{best['indicador']}** ({best['delta_abs']:,.2f}).\n"
+            f"- Maior perda absoluta: **{worst['indicador']}** ({worst['delta_abs']:,.2f}).\n"
+        )
 
     text = f"""
 # Relatório Executivo de Vendas
@@ -50,7 +61,7 @@ def generate_executive_insights(
 3. O cliente de maior faturamento foi **{client}**.
 4. A taxa de anomalias identificadas é de **{outlier_rate:.2f}%** das linhas analisadas.
 5. Priorize ações comerciais em produtos de alta margem e revise precificação de produtos em baixa margem.
-
+{comp_section}
 ## Recomendações
 - Reforçar campanhas para clientes com alto potencial de margem.
 - Criar plano de ação para itens com margem baixa recorrente.

@@ -132,3 +132,28 @@ def high_low_margin_products(df: pd.DataFrame, q: float = 0.2) -> Tuple[pd.DataF
     high = grouped[grouped["margem_media"] >= high_thr].sort_values("margem_media", ascending=False)
     low = grouped[grouped["margem_media"] <= low_thr].sort_values("margem_media", ascending=True)
     return high, low
+
+
+
+def product_behavior_clustering(df: pd.DataFrame, n_clusters: int = 4) -> pd.DataFrame:
+    """Agrupa produtos por comportamento de venda/margem/frequência."""
+    features = (
+        df.groupby("cod_produto", as_index=False)
+        .agg(
+            faturamento=("faturamento", "sum"),
+            margem_media=("margem_percentual", "mean"),
+            volume=("qtde", "sum"),
+            frequencia_dias=("data_emissao", "nunique"),
+        )
+        .fillna(0)
+    )
+
+    if len(features) == 0:
+        return features
+
+    n_clusters = max(1, min(n_clusters, len(features)))
+    scaler = StandardScaler()
+    x = scaler.fit_transform(features[["faturamento", "margem_media", "volume", "frequencia_dias"]])
+    model = KMeans(n_clusters=n_clusters, random_state=42, n_init=20)
+    features["cluster_produto"] = model.fit_predict(x)
+    return features
