@@ -17,6 +17,17 @@ class ForecastResult:
     history: pd.DataFrame
     forecast: pd.DataFrame
     metrics: Dict[str, float]
+    baseline_metrics: Dict[str, float]
+    message: str
+
+
+def _error_metrics(y_true: pd.Series, y_pred: np.ndarray) -> Dict[str, float]:
+    return {
+        "mae": float(mean_absolute_error(y_true, y_pred)),
+        "rmse": float(np.sqrt(mean_squared_error(y_true, y_pred))),
+        "r2": float(r2_score(y_true, y_pred)) if len(y_true) > 1 else float("nan"),
+        "mape": float(np.mean(np.abs((y_true - y_pred) / np.where(y_true == 0, 1, y_true))) * 100),
+    }
 
 
 def customer_clustering(df: pd.DataFrame, n_clusters: int = 4) -> pd.DataFrame:
@@ -31,9 +42,10 @@ def customer_clustering(df: pd.DataFrame, n_clusters: int = 4) -> pd.DataFrame:
         .fillna(0)
     )
 
-    if len(features) < n_clusters:
-        n_clusters = max(1, len(features))
+    if len(features) == 0:
+        return features
 
+    n_clusters = max(1, min(n_clusters, len(features)))
     scaler = StandardScaler()
     x = scaler.fit_transform(features[["faturamento", "margem", "volume", "pedidos"]])
     model = KMeans(n_clusters=n_clusters, random_state=42, n_init=20)
@@ -74,22 +86,32 @@ def _prepare_series(df: pd.DataFrame, frequency: str) -> pd.DataFrame:
 
 def forecast_revenue(df: pd.DataFrame, frequency: str = "Mensal", periods_ahead: int = 3) -> ForecastResult:
     series = _prepare_series(df, frequency)
-    if len(series) < 4:
-        return ForecastResult(history=series, forecast=pd.DataFrame(), metrics={})
+    if len(series) < 6:
+        msg = (
+            "Dados insuficientes para avaliação robusta da previsão. "
+            "Recomendado: ao menos 6 períodos agregados para comparar modelo e baseline."
+        )
+        return ForecastResult(
+            history=series,
+            forecast=pd.DataFrame(),
+            metrics={},
+            baseline_metrics={},
+            message=msg,
+        )
 
-    split = int(len(series) * 0.8)
+    split = max(3, int(len(series) * 0.8))
     train = series.iloc[:split]
     test = series.iloc[split:]
 
     model = LinearRegression()
     model.fit(train[["t"]], train["y"])
-
     test_pred = model.predict(test[["t"]])
-    metrics = {
-        "mae": float(mean_absolute_error(test["y"], test_pred)),
-        "rmse": float(np.sqrt(mean_squared_error(test["y"], test_pred))),
-        "r2": float(r2_score(test["y"], test_pred)),
-    }
+    metrics = _error_metrics(test["y"], test_pred)
+
+    # baseline: último valor observado no treino
+    last_value = train["y"].iloc[-1]
+    baseline_pred = np.repeat(last_value, len(test))
+    baseline_metrics = _error_metrics(test["y"], baseline_pred)
 
     future_t = np.arange(series["t"].max() + 1, series["t"].max() + 1 + periods_ahead)
     future_y = model.predict(future_t.reshape(-1, 1))
@@ -101,7 +123,8 @@ def forecast_revenue(df: pd.DataFrame, frequency: str = "Mensal", periods_ahead:
         future_periods = [last_period + pd.DateOffset(months=i) for i in range(1, periods_ahead + 1)]
 
     forecast = pd.DataFrame({"periodo": future_periods, "forecast": future_y})
-    return ForecastResult(history=series, forecast=forecast, metrics=metrics)
+    msg = "Modelo linear comparado com baseline ingênuo (último valor)."
+    return ForecastResult(history=series, forecast=forecast, metrics=metrics, baseline_metrics=baseline_metrics, message=msg)
 
 
 def product_relevance_rank(df: pd.DataFrame) -> pd.DataFrame:
@@ -134,9 +157,7 @@ def high_low_margin_products(df: pd.DataFrame, q: float = 0.2) -> Tuple[pd.DataF
     return high, low
 
 
-
 def product_behavior_clustering(df: pd.DataFrame, n_clusters: int = 4) -> pd.DataFrame:
-    """Agrupa produtos por comportamento de venda/margem/frequência."""
     features = (
         df.groupby("cod_produto", as_index=False)
         .agg(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
@@ -41,6 +43,29 @@ COLUMN_RENAME_MAP: Dict[str, str] = {
 class ValidationResult:
     is_valid: bool
     missing_columns: List[str]
+    mapping: Dict[str, str]
+
+
+def _normalize_name(name: str) -> str:
+    n = unicodedata.normalize("NFKD", str(name)).encode("ascii", "ignore").decode("ascii")
+    n = n.lower().strip()
+    n = re.sub(r"\s+", " ", n)
+    n = re.sub(r"[^a-z0-9]+", "", n)
+    return n
+
+
+def _resolve_column_mapping(columns: List[str]) -> Tuple[Dict[str, str], List[str]]:
+    normalized_incoming = {_normalize_name(c): c for c in columns}
+    mapping: Dict[str, str] = {}
+    missing: List[str] = []
+
+    for expected in EXPECTED_COLUMNS:
+        key = _normalize_name(expected)
+        if key in normalized_incoming:
+            mapping[normalized_incoming[key]] = expected
+        else:
+            missing.append(expected)
+    return mapping, missing
 
 
 def load_xls(file) -> pd.DataFrame:
@@ -49,12 +74,15 @@ def load_xls(file) -> pd.DataFrame:
 
 
 def validate_columns(df: pd.DataFrame) -> ValidationResult:
-    missing = [col for col in EXPECTED_COLUMNS if col not in df.columns]
-    return ValidationResult(is_valid=len(missing) == 0, missing_columns=missing)
+    mapping, missing = _resolve_column_mapping(df.columns.tolist())
+    return ValidationResult(is_valid=len(missing) == 0, missing_columns=missing, mapping=mapping)
 
 
-def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return df.rename(columns=COLUMN_RENAME_MAP).copy()
+def standardize_columns(df: pd.DataFrame, mapping: Dict[str, str] | None = None) -> pd.DataFrame:
+    if mapping is None:
+        mapping, _ = _resolve_column_mapping(df.columns.tolist())
+    canonical = df.rename(columns=mapping)
+    return canonical.rename(columns=COLUMN_RENAME_MAP).copy()
 
 
 def _to_datetime_br(series: pd.Series) -> pd.Series:
@@ -69,55 +97,54 @@ def _normalize_categorical(series: pd.Series, default_value: str = "NA") -> pd.S
     return series.astype("string").str.strip().replace({"": pd.NA, "nan": pd.NA, "None": pd.NA}).fillna(default_value)
 
 
-def clean_and_enrich(df_raw: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, int]]:
+def clean_and_enrich(df_raw: pd.DataFrame, mapping: Dict[str, str] | None = None) -> Tuple[pd.DataFrame, Dict[str, int]]:
     """Limpa, corrige tipos e cria colunas derivadas com foco em consistência analítica."""
-    df = standardize_columns(df_raw)
+    df = standardize_columns(df_raw, mapping=mapping)
 
-    # Datas
     df["data_emissao"] = _to_datetime_br(df["data_emissao"])
     df["data_vencimento"] = _to_datetime_br(df["data_vencimento"])
 
-    # Numéricos
-    numeric_cols = ["qtde", "preco_venda_unit", "custo_real", "custo_medio"]
-    for col in numeric_cols:
+    for col in ["qtde", "preco_venda_unit", "custo_real", "custo_medio"]:
         df[col] = _to_numeric(df[col])
 
-    # Categóricos
     for col in ["nfe", "forma_pagto", "cod_produto", "cod_cliente", "cod_vendedor", "empresa"]:
         df[col] = _normalize_categorical(df[col])
 
     before = len(df)
-
-    # Regras críticas de consistência
     df = df.dropna(subset=["data_emissao", "qtde", "preco_venda_unit"])
     removed_missing_critical = before - len(df)
 
     negative_qty = int((df["qtde"] < 0).sum())
     negative_price = int((df["preco_venda_unit"] < 0).sum())
-    df = df[(df["qtde"] >= 0) & (df["preco_venda_unit"] >= 0)]
+    df = df[(df["qtde"] >= 0) & (df["preco_venda_unit"] >= 0)].copy()
 
-    # Custos: usa custo médio como fallback e evita nulos
-    df["custo_real"] = df["custo_real"].fillna(df["custo_medio"])
-    df["custo_medio"] = df["custo_medio"].fillna(df["custo_real"])
-    df["custo_real"] = df["custo_real"].fillna(0)
-    df["custo_medio"] = df["custo_medio"].fillna(0)
+    # Custos: não força custo zero quando ausente
+    custo_ref = df["custo_real"].fillna(df["custo_medio"])
+    custo_missing_mask = custo_ref.isna()
+    custo_inconsistent_mask = custo_ref < 0
+    custo_valid_mask = ~(custo_missing_mask | custo_inconsistent_mask)
 
-    # Outliers extremamente improváveis em preço/quantidade (winsorização leve)
+    df["status_custo"] = np.select(
+        [custo_valid_mask, custo_missing_mask, custo_inconsistent_mask],
+        ["valido", "ausente", "inconsistente"],
+        default="ausente",
+    )
+    df["custo_ref"] = custo_ref.where(custo_valid_mask, np.nan)
+
+    # Winsorização leve apenas para visualizações
     for col in ["qtde", "preco_venda_unit"]:
         low, high = df[col].quantile([0.001, 0.999])
         df[col] = df[col].clip(lower=low, upper=high)
 
-    # Derivadas de negócio
     df["faturamento"] = df["qtde"] * df["preco_venda_unit"]
-    df["custo_total"] = df["qtde"] * df["custo_real"]
-    df["margem_bruta"] = df["faturamento"] - df["custo_total"]
+    df["custo_total"] = np.where(df["custo_ref"].notna(), df["qtde"] * df["custo_ref"], np.nan)
+    df["margem_bruta"] = np.where(df["custo_total"].notna(), df["faturamento"] - df["custo_total"], np.nan)
     df["margem_percentual"] = np.where(
-        df["faturamento"] > 0,
+        (df["faturamento"] > 0) & (df["margem_bruta"].notna()),
         (df["margem_bruta"] / df["faturamento"]) * 100,
-        0,
+        np.nan,
     )
 
-    # Derivadas temporais
     iso_calendar = df["data_emissao"].dt.isocalendar()
     df["ano"] = df["data_emissao"].dt.year
     df["trimestre"] = df["data_emissao"].dt.quarter
@@ -126,16 +153,18 @@ def clean_and_enrich(df_raw: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, int]
     df["semana"] = iso_calendar.week.astype(int)
     df["ano_semana"] = iso_calendar.year.astype(str) + "-W" + iso_calendar.week.astype(str).str.zfill(2)
     df["dia"] = df["data_emissao"].dt.day
-
-    # Coluna para cenários de comparação
     df["periodo_comparacao"] = "base"
 
     quality = {
         "linhas_entrada": int(before),
-        "linhas_saida": int(len(df)),
+        "linhas_validas": int(len(df)),
+        "linhas_removidas": int(before - len(df)),
         "linhas_removidas_criticas": int(removed_missing_critical),
         "qtde_negativa_removida": negative_qty,
         "preco_negativo_removido": negative_price,
+        "custos_validos": int((df["status_custo"] == "valido").sum()),
+        "custos_ausentes": int((df["status_custo"] == "ausente").sum()),
+        "custos_inconsistentes": int((df["status_custo"] == "inconsistente").sum()),
     }
     return df, quality
 
@@ -157,7 +186,6 @@ def align_equivalent_periods(
     start_b: pd.Timestamp,
     end_b: pd.Timestamp,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, int]]:
-    """Recorta períodos equivalentes em dias, sem depender de número de linhas."""
     a = filter_by_period(df_a, start_a, end_a)
     b = filter_by_period(df_b, start_b, end_b)
 

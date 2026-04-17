@@ -16,7 +16,9 @@ def compare_kpis(df_a: pd.DataFrame, df_b: pd.DataFrame, label_a: str = "Períod
     for key, name in [
         ("faturamento_total", "Faturamento Total"),
         ("quantidade_total", "Quantidade Total"),
-        ("ticket_medio", "Ticket Médio"),
+        ("ticket_medio_nfe", "Ticket Médio por Pedido"),
+        ("ticket_medio_linha", "Ticket Médio por Linha"),
+        ("margem_bruta_total", "Margem Bruta Total"),
         ("margem_media_percentual", "Margem Média (%)"),
     ]:
         a = float(kpi_a[key])
@@ -25,36 +27,51 @@ def compare_kpis(df_a: pd.DataFrame, df_b: pd.DataFrame, label_a: str = "Períod
         delta_pct = (delta / a * 100) if a != 0 else np.nan
         rows.append({"indicador": name, label_a: a, label_b: b, "delta_abs": delta, "delta_pct": delta_pct})
 
-    # Margem bruta total explícita
-    margem_a = float(df_a["margem_bruta"].sum())
-    margem_b = float(df_b["margem_bruta"].sum())
-    rows.append(
-        {
-            "indicador": "Margem Bruta Total",
-            label_a: margem_a,
-            label_b: margem_b,
-            "delta_abs": margem_b - margem_a,
-            "delta_pct": ((margem_b - margem_a) / margem_a * 100) if margem_a != 0 else np.nan,
-        }
-    )
-
     return pd.DataFrame(rows)
 
 
-def compare_dimension(df_a: pd.DataFrame, df_b: pd.DataFrame, dimension: str) -> pd.DataFrame:
-    a = aggregate_revenue(df_a, dimension, top_n=10).rename(columns={"faturamento": "faturamento_a", "qtde": "qtde_a"})
-    b = aggregate_revenue(df_b, dimension, top_n=10).rename(columns={"faturamento": "faturamento_b", "qtde": "qtde_b"})
+def compare_dimension(df_a: pd.DataFrame, df_b: pd.DataFrame, dimension: str, min_share: float = 0.001) -> pd.DataFrame:
+    """Compara dimensão usando união de itens relevantes, sem viés de top10."""
+    a = aggregate_revenue(df_a, dimension, top_n=None).rename(
+        columns={"faturamento": "faturamento_a", "qtde": "qtde_a", "margem_bruta": "margem_a"}
+    )
+    b = aggregate_revenue(df_b, dimension, top_n=None).rename(
+        columns={"faturamento": "faturamento_b", "qtde": "qtde_b", "margem_bruta": "margem_b"}
+    )
 
-    merged = a[[dimension, "faturamento_a", "qtde_a"]].merge(
-        b[[dimension, "faturamento_b", "qtde_b"]], on=dimension, how="outer"
+    merged = a[[dimension, "faturamento_a", "qtde_a", "margem_a"]].merge(
+        b[[dimension, "faturamento_b", "qtde_b", "margem_b"]], on=dimension, how="outer"
     )
     merged = merged.fillna(0)
-    merged["delta_faturamento"] = merged["faturamento_b"] - merged["faturamento_a"]
-    merged["delta_faturamento_pct"] = np.where(
-        merged["faturamento_a"] != 0,
-        (merged["delta_faturamento"] / merged["faturamento_a"]) * 100,
-        np.nan,
+
+    total_ref = max(merged["faturamento_a"].sum(), merged["faturamento_b"].sum(), 1)
+    merged = merged[
+        ((merged["faturamento_a"] + merged["faturamento_b"]).abs() / total_ref >= min_share)
+        | ((merged["qtde_a"] + merged["qtde_b"]).abs() > 0)
+    ].copy()
+
+    merged["status"] = np.select(
+        [
+            (merged["faturamento_a"] == 0) & (merged["faturamento_b"] > 0),
+            (merged["faturamento_a"] > 0) & (merged["faturamento_b"] == 0),
+            (merged["faturamento_a"] > 0) & (merged["faturamento_b"] > 0),
+        ],
+        ["novo", "ausente", "recorrente"],
+        default="sem_movimento",
     )
+
+    for metric in ["faturamento", "qtde", "margem"]:
+        merged[f"delta_{metric}"] = merged[f"{metric}_b"] - merged[f"{metric}_a"]
+        merged[f"delta_{metric}_pct"] = np.where(
+            merged[f"{metric}_a"] != 0,
+            merged[f"delta_{metric}"] / merged[f"{metric}_a"] * 100,
+            np.nan,
+        )
+
+    merged["rank_a"] = merged["faturamento_a"].rank(ascending=False, method="dense")
+    merged["rank_b"] = merged["faturamento_b"].rank(ascending=False, method="dense")
+    merged["mudanca_ranking"] = merged["rank_a"] - merged["rank_b"]
+
     return merged.sort_values("delta_faturamento", ascending=False)
 
 
@@ -67,7 +84,9 @@ def _product_base(df: pd.DataFrame, tag: str) -> pd.DataFrame:
             margem=("margem_bruta", "sum"),
             dias_com_venda=("data_emissao", "nunique"),
             meses_ativos=("mes_ref", "nunique"),
+            desvio_faturamento=("faturamento", "std"),
         )
+        .fillna({"desvio_faturamento": 0})
         .rename(
             columns={
                 "qtde": f"qtde_{tag}",
@@ -75,6 +94,7 @@ def _product_base(df: pd.DataFrame, tag: str) -> pd.DataFrame:
                 "margem": f"margem_{tag}",
                 "dias_com_venda": f"dias_com_venda_{tag}",
                 "meses_ativos": f"meses_ativos_{tag}",
+                "desvio_faturamento": f"desvio_faturamento_{tag}",
             }
         )
     )
@@ -107,13 +127,14 @@ def analyze_product_movement(df_a: pd.DataFrame, df_b: pd.DataFrame) -> pd.DataF
 
     m["mudanca_ranking"] = m["rank_faturamento_a"] - m["rank_faturamento_b"]
 
-    # estabilidade por variação relativa de faturamento
     rel = m["delta_faturamento_pct"].abs().fillna(999)
     m["comportamento"] = np.where(rel <= 15, "estavel", np.where(rel <= 40, "moderado", "instavel"))
 
-    # frequência de venda normalizada por mês ativo em cada período
     m["freq_venda_a"] = np.where(m["meses_ativos_a"] > 0, m["dias_com_venda_a"] / m["meses_ativos_a"], 0)
     m["freq_venda_b"] = np.where(m["meses_ativos_b"] > 0, m["dias_com_venda_b"] / m["meses_ativos_b"], 0)
+
+    m["estabilidade_a"] = np.where(m["faturamento_a"] > 0, m["desvio_faturamento_a"] / m["faturamento_a"], np.nan)
+    m["estabilidade_b"] = np.where(m["faturamento_b"] > 0, m["desvio_faturamento_b"] / m["faturamento_b"], np.nan)
 
     return m.sort_values("delta_faturamento", ascending=False)
 
