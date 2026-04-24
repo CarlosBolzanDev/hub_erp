@@ -11,7 +11,6 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from sqlalchemy import select
-from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.orm import Session
 
 from db import DBConfig, get_engine
@@ -72,7 +71,6 @@ class ScraperConfig:
     timeout: int = int(os.getenv("REQUEST_TIMEOUT", "30"))
     delay_min: float = float(os.getenv("DELAY_MIN", "0.8"))
     delay_max: float = float(os.getenv("DELAY_MAX", "1.8"))
-    headless: bool = os.getenv("HEADLESS", "true").lower() == "true"
 
 
 def normalize_text(value: str | None) -> str | None:
@@ -160,7 +158,7 @@ def find_next_payload(soup: BeautifulSoup) -> tuple[str, dict[str, str]] | None:
     return action, payload
 
 
-def scrape_with_requests(config: ScraperConfig) -> list[dict[str, Any]]:
+def scrape_catalog(config: ScraperConfig) -> list[dict[str, Any]]:
     logger.info("Iniciando scraping via requests")
     session = make_session()
     all_rows: list[dict[str, Any]] = []
@@ -192,7 +190,6 @@ def scrape_with_requests(config: ScraperConfig) -> list[dict[str, Any]]:
         try:
             nxt = session.post(action, data=payload, timeout=config.timeout)
             nxt.raise_for_status()
-            # PrimeFaces pode retornar XML parcial; tenta extrair CDATA com HTML.
             if "<partial-response" in nxt.text and "<![CDATA[" in nxt.text:
                 chunks = re.findall(r"<!\[CDATA\[(.*?)\]\]>", nxt.text, flags=re.S)
                 page_html = "\n".join(chunks) if chunks else nxt.text
@@ -208,71 +205,30 @@ def scrape_with_requests(config: ScraperConfig) -> list[dict[str, Any]]:
     return all_rows
 
 
-def scrape_with_playwright(config: ScraperConfig) -> list[dict[str, Any]]:
-    logger.info("Fallback para Playwright")
-    from playwright.sync_api import sync_playwright
-
-    all_rows: list[dict[str, Any]] = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=config.headless)
-        page = browser.new_page()
-        page.goto(URL, wait_until="networkidle", timeout=config.timeout * 1000)
-
-        seen = set()
-        while True:
-            html = page.content()
-            rows = parse_table(html)
-            for row in rows:
-                key = tuple(row.get(f) for f in HEADER_TO_FIELD.values())
-                if key not in seen:
-                    seen.add(key)
-                    all_rows.append(row)
-            logger.info("Acumulado Playwright: %s", len(all_rows))
-
-            next_btn = page.locator("a[aria-label*='Próximo'], a[aria-label*='Prximo'], a[title*='Próximo'], a[title*='Prximo']")
-            if next_btn.count() == 0:
-                break
-            if "ui-state-disabled" in (next_btn.first.get_attribute("class") or ""):
-                break
-            next_btn.first.click()
-            page.wait_for_timeout(int(random.uniform(config.delay_min, config.delay_max) * 1000))
-            page.wait_for_load_state("networkidle")
-
-        browser.close()
-    return all_rows
-
-
 def upsert_records(session: Session, records: list[dict[str, Any]]) -> int:
     if not records:
         return 0
 
-    dialect = session.bind.dialect.name  # type: ignore[attr-defined]
     count = 0
     for row in records:
         row = {k: normalize_text(v) if isinstance(v, str) else v for k, v in row.items()}
         row["source_url"] = URL
-        if dialect == "mysql":
-            stmt = mysql_insert(CatalogRecord).values(**row)
-            update_data = {c.name: stmt.inserted[c.name] for c in CatalogRecord.__table__.c if c.name not in {"id"}}
-            stmt = stmt.on_duplicate_key_update(**update_data)
-            session.execute(stmt)
+        filters = {
+            "montadora": row.get("montadora"),
+            "modelo": row.get("modelo"),
+            "motor": row.get("motor"),
+            "ano_de": row.get("ano_de"),
+            "ano_ate": row.get("ano_ate"),
+            "descricao": row.get("descricao"),
+            "combustivel": row.get("combustivel"),
+            "local_ar_cabine": row.get("local_ar_cabine"),
+        }
+        existing = session.scalar(select(CatalogRecord).filter_by(**filters))
+        if existing:
+            for key, value in row.items():
+                setattr(existing, key, value)
         else:
-            filters = {
-                "montadora": row.get("montadora"),
-                "modelo": row.get("modelo"),
-                "motor": row.get("motor"),
-                "ano_de": row.get("ano_de"),
-                "ano_ate": row.get("ano_ate"),
-                "descricao": row.get("descricao"),
-                "combustivel": row.get("combustivel"),
-                "local_ar_cabine": row.get("local_ar_cabine"),
-            }
-            existing = session.scalar(select(CatalogRecord).filter_by(**filters))
-            if existing:
-                for key, value in row.items():
-                    setattr(existing, key, value)
-            else:
-                session.add(CatalogRecord(**row))
+            session.add(CatalogRecord(**row))
         count += 1
 
     session.commit()
@@ -283,13 +239,9 @@ def main() -> None:
     config = ScraperConfig()
     engine = get_engine(DBConfig())
     Base.metadata.create_all(engine)
-    logger.info("Tabelas verificadas/criadas")
+    logger.info("Tabela SQLite verificada/criada")
 
-    records = scrape_with_requests(config)
-    if not records:
-        logger.warning("Requests não retornou dados; tentando Playwright")
-        records = scrape_with_playwright(config)
-
+    records = scrape_catalog(config)
     if not records:
         logger.warning("Nenhum dado encontrado")
         return

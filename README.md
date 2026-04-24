@@ -1,19 +1,22 @@
-# Scraper Tecfil (Catálogo de Automóveis)
+# Scraper Tecfil (Catálogo de Automóveis) + SQLite local
 
-Projeto em Python para extração automática do catálogo de autopeças da Tecfil e persistência com SQLAlchemy.
+Projeto Python focado somente em:
+1. scraping do catálogo Tecfil;
+2. gravação dos dados em banco SQLite local.
 
-## Arquivos
+Sem dependências de web app, API ou frontend.
 
-- `scraper.py`: executável principal com scraping (requests + fallback Playwright), paginação, normalização e upsert.
-- `db.py`: configuração de conexão por variáveis de ambiente e criação automática do banco.
-- `models.py`: modelo ORM e chave única para evitar duplicidade.
-- `schema.sql`: script SQL de criação do banco/tabela.
-- `requirements.txt`: dependências do projeto.
+## Estrutura
+
+- `scraper.py`: execução principal do scraping e persistência.
+- `db.py`: configuração e criação automática do arquivo `.db` local.
+- `models.py`: modelo ORM e chave única anti-duplicidade.
+- `schema.sql`: criação de tabela/índice único no SQLite.
+- `requirements.txt`: dependências mínimas.
 
 ## Requisitos
 
 - Python 3.11+
-- MySQL (padrão) ou SQLite (opcional)
 
 ## Instalação
 
@@ -21,30 +24,16 @@ Projeto em Python para extração automática do catálogo de autopeças da Tecf
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-playwright install chromium
 ```
 
 ## Exemplo de `.env`
 
 ```env
-# Banco
-DB_TYPE=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=senha
-DB_NAME=tecfil_catalog
-
-# Alternativa SQLite
-# DB_TYPE=sqlite
-# SQLITE_PATH=./tecfil_catalog.db
-
-# Scraper
+SQLITE_PATH=./data/tecfil_catalog.db
 TARGET_URL=https://tecfil-catalago.gruposofape.com.br/CatalogoTecfil/resultadoPorCategoria.xhtml?search-term=categoria-automoveis
 REQUEST_TIMEOUT=30
 DELAY_MIN=0.8
 DELAY_MAX=1.8
-HEADLESS=true
 LOG_LEVEL=INFO
 ```
 
@@ -54,17 +43,11 @@ LOG_LEVEL=INFO
 python scraper.py
 ```
 
-## Como funciona
+## Comportamento
 
-1. Verifica e cria o banco (MySQL) se não existir.
-2. Verifica e cria a tabela com SQLAlchemy (`Base.metadata.create_all`).
-3. Tenta scraping via `requests` (sessão com retry/cookies, ViewState e paginação).
-4. Se necessário, usa fallback Playwright (headless por padrão).
-5. Faz `upsert` (insert/update) para evitar duplicidade de registros.
-6. Salva `source_url` em todos os registros.
-
-## Observações
-
-- O mapeamento das colunas é detectado pelo cabeçalho da tabela e normalizado.
-- Valores vazios são convertidos para `NULL`.
-- Há delay entre páginas e logs de progresso.
+- Se o arquivo SQLite não existir, ele é criado automaticamente.
+- Se a tabela não existir, ela é criada automaticamente.
+- O scraper mantém sessão HTTP, trata retry e timeout, processa ViewState/JSF e paginação.
+- Valores vazios viram `NULL`.
+- Inserção é feita com lógica de upsert para não duplicar registros (com base na chave única definida).
+- Cada registro salva também a URL de origem (`source_url`).
