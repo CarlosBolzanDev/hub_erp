@@ -1,59 +1,64 @@
 # Generic Python Runtime Engine
 
-## 1) O que é a engine
-Uma engine desktop genérica (Tkinter) para selecionar manualmente scripts `.py`, carregar/executar com isolamento de erro e distribuir como EXE autossuficiente (PyInstaller), sem exigir Python instalado no cliente.
+## 1. O que é a engine
+Runtime genérico para executar scripts Python com API interna padronizada, suporte a modo **headless** e modo **GUI**. O objetivo final é distribuição em EXE autossuficiente (sem Python no cliente).
 
-## 2) Como abrir a engine no modo desenvolvimento
+## 2. Diagnóstico do bug anterior
+Antes desta refatoração, `Engine.__init__()` criava `MainWindow` imediatamente e `start()` sempre chamava `mainloop()`. Isso forçava abertura da interface mesmo quando a intenção era apenas rodar scripts automaticamente.
+
+## 3. Como abrir no modo desenvolvimento
 ```bash
 cd engine_project
-python runtime_entry.py
+python runtime_entry.py --mode gui
 ```
-
-## 3) Como gerar o EXE
-### OneDir
+Ou headless:
 ```bash
-pyinstaller --noconfirm --windowed --name GenericRuntime \
-  --add-data "configs;configs" \
-  --add-data "app/assets;app/assets" \
-  runtime_entry.py
+python runtime_entry.py --mode headless
 ```
-### OneFile
+
+## 4. Como gerar o EXE
+### Recomendação
+Use **onedir** para runtime com scripts/plugins externos (facilita atualização e troubleshooting).
+
 ```bash
-pyinstaller --noconfirm --onefile --windowed --name GenericRuntime \
-  --add-data "configs;configs" \
-  --add-data "app/assets;app/assets" \
-  runtime_entry.py
+pyinstaller --noconfirm build.spec
+```
+Ou use:
+```bash
+build.bat
 ```
 
-## 4) Como adicionar scripts `.py` pela interface
-1. Abra o runtime.
-2. Clique em **Adicionar scripts .py**.
-3. Selecione um ou mais arquivos Python.
-4. Eles passam a aparecer na lista de scripts registrados.
+## 5. Como adicionar scripts `.py` pela interface
+1. Abrir com `--mode gui`.
+2. Clicar em **Adicionar scripts .py**.
+3. Selecionar arquivos.
+4. Scripts aparecem na lista.
 
-## 5) Como executar e parar scripts
-- Selecione um item da lista.
-- Clique em **Iniciar** para chamar `initialize()`.
-- Clique em **Parar** para chamar `shutdown()`.
-- Clique em **Recarregar selecionados** para recarregar módulos já registrados.
+## 6. Como executar/parar scripts
+- **Iniciar** ativa script selecionado (`initialize`).
+- **Parar** chama `shutdown` do script selecionado.
+- **Recarregar selecionados** recompõe módulos carregados.
+- Sem scripts selecionados/carregados, a engine registra aviso claro em log.
 
-## 6) Como salvar e recarregar a seleção
-- Clique em **Salvar seleção** para persistir os caminhos em `configs/settings.json`.
-- Opcionalmente marque **Auto carregar scripts salvos ao iniciar** nas configurações.
+## 7. Como salvar e recarregar seleção
+- **Salvar seleção** persiste em `configs/settings.json`.
+- Em Configurações, habilite **autoload_selected** para execução automática no headless startup.
 
-## 7) Como um programa/script deve comunicar com a engine
-No `register(engine_api)`, use os métodos:
+## 8. Comunicação script ↔ engine (Engine API)
+Contrato disponível em `register(engine_api)`:
 - `register_service(name, service)`
 - `get_service(name)`
 - `emit_event(name, payload=None)`
 - `on_event(name, callback)`
-- `log(message, level)`
+- `log(message, level="INFO")`
 - `execute_script(path)`
 - `load_selected_scripts()`
 - `shutdown_script(name)`
 - `reload_script(name)`
 
-## 8) Interface mínima obrigatória de um script
+> Scripts devem ser independentes da UI (não assumir Tkinter/controles visuais).
+
+## 9. Interface mínima obrigatória do script
 ```python
 def register(engine_api):
     ...
@@ -65,15 +70,17 @@ def shutdown():
     ...
 ```
 
-## 9) Exemplos de uso
-Veja `app/scripts/sample_script.py` para exemplo de:
-- log via API;
-- emissão de evento interno.
+## 10. Exemplo
+Veja `app/scripts/sample_script.py`.
 
-## 10) Estrutura do projeto
+## 11. Estrutura
 ```text
 engine_project/
 ├── runtime_entry.py
+├── build.spec
+├── build.bat
+├── installer.iss
+├── requirements.txt
 ├── app/
 │   ├── core/
 │   ├── ui/
@@ -81,9 +88,17 @@ engine_project/
 │   ├── assets/
 │   └── runtime/
 ├── configs/
-│   └── settings.json
 └── README.md
 ```
 
-## Observações de empacotamento
-`ResourceManager` detecta `sys._MEIPASS` em modo empacotado e grava logs/dados em `runtime_data/` (diretório atual).
+## 12. Estratégia de instalador
+Use `installer.iss` (Inno Setup) para entregar:
+- executável
+- configs
+- assets
+- bibliotecas empacotadas pelo PyInstaller
+
+Sem necessidade de Python instalado localmente.
+
+## 13. Dependências externas de scripts
+Se scripts exigirem bibliotecas de terceiros, inclua essas dependências no ambiente de build da engine e reconstrua o EXE para embutir tudo no pacote final.
