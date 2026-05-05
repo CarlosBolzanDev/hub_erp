@@ -1,0 +1,10 @@
+.vs/
+bin/
+obj/
+dist/
+.tmp/
+logs/*.log
+config/run_context.json
+config/executavel_state.json
+engine/python/*
+!engine/python/.gitkeep
