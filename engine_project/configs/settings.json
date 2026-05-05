@@ -1,0 +1,9 @@
+{
+  "runtime_name": "Generic Python Runtime",
+  "selected_scripts": [],
+  "log_level": "INFO",
+  "theme": "default",
+  "startup": {
+    "autoload_selected": false
+  }
+}
