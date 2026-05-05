@@ -1,20 +1,19 @@
-"""Sample plugin script demonstrating the runtime API."""
-
 from __future__ import annotations
 
-_ENGINE = None
+engine_api = None
 
 
-def register(engine) -> None:
-    global _ENGINE
-    _ENGINE = engine
+def register(api) -> None:
+    global engine_api
+    engine_api = api
 
 
 def initialize() -> None:
-    if _ENGINE:
-        _ENGINE.logger.info("sample_script initialized")
+    if engine_api:
+        engine_api.log("sample_script initialized", "INFO")
+        engine_api.emit_event("sample_script_initialized", {"script": "sample_script"})
 
 
 def shutdown() -> None:
-    if _ENGINE:
-        _ENGINE.logger.info("sample_script shutdown")
+    if engine_api:
+        engine_api.log("sample_script shutdown", "INFO")

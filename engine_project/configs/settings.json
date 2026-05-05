@@ -1,9 +1,9 @@
 {
   "runtime_name": "Generic Python Runtime",
-  "scripts_folder": "app/scripts",
+  "selected_scripts": [],
   "log_level": "INFO",
   "theme": "default",
   "startup": {
-    "autoload_scripts": true
+    "autoload_selected": false
   }
 }
