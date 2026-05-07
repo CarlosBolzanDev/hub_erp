@@ -1,0 +1,6 @@
+{
+  "name": "flask",
+  "version": "managed",
+  "module": "flask",
+  "enabled": true
+}

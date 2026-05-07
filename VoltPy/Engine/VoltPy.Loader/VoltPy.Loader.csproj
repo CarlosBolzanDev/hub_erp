@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>VoltPy.Loader</AssemblyName>
+    <RootNamespace>VoltPy.Loader</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VoltPy.Runtime\VoltPy.Runtime.csproj" />
+    <ProjectReference Include="..\VoltPy.Packages\VoltPy.Packages.csproj" />
+  </ItemGroup>
+</Project>

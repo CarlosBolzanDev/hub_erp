@@ -1,0 +1,6 @@
+{
+  "name": "pandas",
+  "version": "managed",
+  "module": "pandas",
+  "enabled": true
+}

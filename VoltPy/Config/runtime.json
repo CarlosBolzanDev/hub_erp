@@ -1,0 +1,9 @@
+{
+  "pythonVersion": "3.12",
+  "runtimeMode": "embedded-subprocess",
+  "allowSystemPythonFallback": false,
+  "namespace": "voltpy",
+  "logsDirectory": "Logs",
+  "appsDirectory": "Apps",
+  "packagesDirectory": "Packages"
+}
