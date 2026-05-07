@@ -1,6 +1,6 @@
 """VoltPy HTTP facade wrapping requests."""
 
-from importing.hook import import_real_module
+from voltpy.importing.hook import import_real_module
 
 _requests = import_real_module("requests")
 

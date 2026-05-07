@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from importing.hook import import_real_module
+from voltpy.importing.hook import import_real_module
 
 
 @dataclass(slots=True)

@@ -69,7 +69,7 @@ public sealed class PythonRuntimeHost
             return OperatingSystem.IsWindows() ? "python.exe" : "python3";
         }
 
-        throw new FileNotFoundException("Runtime Python embutido ausente. Configure RuntimeDirectory/PythonExecutable para apontar para a instalação externa VoltPyRuntime.", _paths.PythonExecutable);
+        throw new FileNotFoundException("Runtime Python embutido ausente. Copie o runtime para VoltPy/runtime ou habilite fallback de desenvolvimento.", _paths.PythonExecutable);
     }
 
     private ProcessStartInfo CreateStartInfo(string pythonExecutable, string arguments, string workingDirectory)
@@ -96,12 +96,11 @@ public sealed class PythonRuntimeHost
         startInfo.Environment["PYTHONPATH"] = string.Join(Path.PathSeparator, pythonPath);
         startInfo.Environment["PYTHONNOUSERSITE"] = "1";
         startInfo.Environment["PYTHONDONTWRITEBYTECODE"] = "1";
-        startInfo.Environment["VOLTPY_ROOT"] = _paths.RootDirectory;
+        startInfo.Environment["VOLTPY_ENGINE_DIR"] = _paths.EngineDirectory;
         startInfo.Environment["VOLTPY_NAMESPACE"] = _paths.NamespaceDirectory;
         startInfo.Environment["VOLTPY_PACKAGES"] = _paths.PackagesDirectory;
         startInfo.Environment["VOLTPY_LOGS"] = _paths.LogsDirectory;
         startInfo.Environment["VOLTPY_RUNTIME"] = _paths.RuntimeDirectory;
-        startInfo.Environment["VOLTPY_APPS"] = _paths.AppsDirectory;
         startInfo.Environment["VOLTPY_TEMP"] = _paths.TempDirectory;
         startInfo.Environment.Remove("PYTHONSTARTUP");
 

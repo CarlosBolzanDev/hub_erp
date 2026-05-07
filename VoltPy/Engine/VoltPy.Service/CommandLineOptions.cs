@@ -2,15 +2,15 @@ namespace VoltPy.Service;
 
 public sealed record CommandLineOptions(
     string AppName,
-    string? VoltPyRoot,
+    string? EngineDirectory,
     string? ConfigFile,
     bool DevPythonFallback,
     bool Supervise)
 {
     public static CommandLineOptions Parse(string[] args)
     {
-        var appName = "example_app";
-        string? voltPyRoot = null;
+        var appName = ".";
+        string? engineDirectory = null;
         string? configFile = null;
         var devFallback = false;
         var supervise = false;
@@ -20,8 +20,8 @@ public sealed record CommandLineOptions(
             var arg = args[index];
             switch (arg)
             {
-                case "--voltpy-root":
-                    voltPyRoot = RequireValue(args, ref index, arg);
+                case "--engine-dir":
+                    engineDirectory = RequireValue(args, ref index, arg);
                     break;
                 case "--config":
                     configFile = RequireValue(args, ref index, arg);
@@ -41,7 +41,7 @@ public sealed record CommandLineOptions(
             }
         }
 
-        return new CommandLineOptions(appName, voltPyRoot, configFile, devFallback, supervise);
+        return new CommandLineOptions(appName, engineDirectory, configFile, devFallback, supervise);
     }
 
     private static string RequireValue(string[] args, ref int index, string option)

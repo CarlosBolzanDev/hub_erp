@@ -1,16 +1,14 @@
 namespace VoltPy.Runtime;
 
 /// <summary>
-/// Representa todos os caminhos físicos da instalação externa VoltPy. A classe
-/// não descobre caminhos a partir do executável do host; ela normaliza valores
-/// vindos de arquivo de configuração, variáveis de ambiente ou argumentos CLI.
+/// Caminhos físicos de uma engine VoltPy copiada para dentro de um app.
+/// EngineDirectory é a pasta VoltPy; AppDirectory é o diretório pai do app.
 /// </summary>
 public sealed record VoltPyPaths(
-    string RootDirectory,
     string EngineDirectory,
+    string AppDirectory,
     string RuntimeDirectory,
     string PackagesDirectory,
-    string AppsDirectory,
     string NamespaceDirectory,
     string LogsDirectory,
     string TempDirectory,
@@ -18,34 +16,35 @@ public sealed record VoltPyPaths(
     string PythonExecutablePath,
     string PythonHomeDirectory)
 {
+    public string RootDirectory => EngineDirectory;
     public string PythonExecutable => PythonExecutablePath;
     public string PythonHome => PythonHomeDirectory;
     public string PythonLib => Path.Combine(RuntimeDirectory, "Lib");
     public string SitePackages => Path.Combine(RuntimeDirectory, "site-packages");
     public string BootstrapScript => Path.Combine(NamespaceDirectory, "bootstrap.py");
 
-    public static VoltPyPaths FromOptions(VoltPyPathOptions options, string rootDirectory, string rootBaseDirectory)
+    public static VoltPyPaths FromOptions(VoltPyPathOptions options, string engineDirectory, string engineBaseDirectory)
     {
-        var root = ResolveRoot(rootDirectory, rootBaseDirectory);
-        var runtimeDirectory = ResolvePath(options.RuntimeDirectory, root, "Runtime");
+        var engine = ResolveRoot(engineDirectory, engineBaseDirectory);
+        var appDirectory = ResolvePath(options.AppDirectory, Directory.GetParent(engine)?.FullName ?? engine, ".");
+        var runtimeDirectory = ResolvePath(options.RuntimeDirectory, engine, "runtime");
 
         return new VoltPyPaths(
-            root,
-            ResolvePath(options.EngineDirectory, root, "Engine"),
+            engine,
+            appDirectory,
             runtimeDirectory,
-            ResolvePath(options.PackagesDirectory, root, "Packages"),
-            ResolvePath(options.AppsDirectory, root, "Apps"),
-            ResolvePath(options.NamespaceDirectory, root, "VoltPy"),
-            ResolvePath(options.LogsDirectory, root, "Logs"),
-            ResolvePath(options.TempDirectory, root, "Temp"),
-            ResolvePath(options.ConfigDirectory, root, "Config"),
+            ResolvePath(options.PackagesDirectory, engine, "packages"),
+            ResolvePath(options.NamespaceDirectory, engine, "voltpy"),
+            ResolvePath(options.LogsDirectory, engine, "logs"),
+            ResolvePath(options.TempDirectory, engine, "temp"),
+            ResolvePath(options.ConfigDirectory, engine, "config"),
             ResolvePath(options.PythonExecutable, runtimeDirectory, OperatingSystem.IsWindows() ? "python.exe" : "python"),
             ResolvePath(options.PythonHome, runtimeDirectory, "."));
     }
 
     public void EnsureBaseDirectories()
     {
-        foreach (var path in new[] { EngineDirectory, RuntimeDirectory, PackagesDirectory, AppsDirectory, NamespaceDirectory, LogsDirectory, TempDirectory, ConfigDirectory, SitePackages, PythonLib })
+        foreach (var path in new[] { RuntimeDirectory, PackagesDirectory, NamespaceDirectory, LogsDirectory, TempDirectory, ConfigDirectory, SitePackages, PythonLib })
         {
             Directory.CreateDirectory(path);
         }
@@ -55,7 +54,7 @@ public sealed record VoltPyPaths(
     {
         if (string.IsNullOrWhiteSpace(path))
         {
-            throw new ArgumentException("VoltPyRoot não pode ser vazio.", nameof(path));
+            throw new ArgumentException("EngineDirectory não pode ser vazio.", nameof(path));
         }
 
         return Path.GetFullPath(path, rootBaseDirectory);

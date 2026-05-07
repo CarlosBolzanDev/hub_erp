@@ -1,6 +1,6 @@
 """Controlled pandas facade for VoltPy apps."""
 
-from importing.hook import import_real_module
+from voltpy.importing.hook import import_real_module
 
 _pandas = import_real_module("pandas")
 if not hasattr(_pandas, "DataFrame"):

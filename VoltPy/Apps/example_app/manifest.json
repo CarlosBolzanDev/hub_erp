@@ -1,8 +1,0 @@
-{
-  "name": "ExampleApp",
-  "version": "1.0",
-  "entry": "main.py",
-  "dependencies": [
-    "pandas"
-  ]
-}

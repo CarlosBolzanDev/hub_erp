@@ -20,20 +20,14 @@ public sealed class AppExecutor
         _logger = logger;
     }
 
-    public async Task<int> ExecuteAsync(string appNameOrPath, CancellationToken cancellationToken = default)
+    public async Task<int> ExecuteAsync(string? appPathOrEntry = null, CancellationToken cancellationToken = default)
     {
-        var appDirectory = ResolveAppDirectory(appNameOrPath);
-        var manifest = _manifestLoader.Load(appDirectory);
+        var (appDirectory, explicitEntry) = ResolveAppTarget(appPathOrEntry);
+        var manifest = _manifestLoader.LoadOrDiscover(appDirectory, explicitEntry);
         _logger.Info($"Carregando app {manifest.Name} v{manifest.Version} em {appDirectory}.");
         _packageManager.ValidateDependencies(manifest.Dependencies);
 
-        var entry = Path.GetFullPath(Path.Combine(appDirectory, manifest.Entry));
-        var relativeEntry = Path.GetRelativePath(appDirectory, entry);
-        if (relativeEntry.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relativeEntry))
-        {
-            throw new InvalidOperationException("Entry do manifest não pode apontar para fora do diretório do app.");
-        }
-
+        var entry = _manifestLoader.ResolveEntry(appDirectory, manifest.Entry);
         var environment = new Dictionary<string, string>
         {
             ["VOLTPY_APP_NAME"] = manifest.Name,
@@ -46,18 +40,30 @@ public sealed class AppExecutor
         return result.ExitCode;
     }
 
-    private string ResolveAppDirectory(string appNameOrPath)
+    private (string AppDirectory, string? ExplicitEntry) ResolveAppTarget(string? appPathOrEntry)
     {
-        var path = Path.IsPathRooted(appNameOrPath)
-            ? appNameOrPath
-            : Path.Combine(_paths.AppsDirectory, appNameOrPath);
-
-        path = Path.GetFullPath(path);
-        if (!Directory.Exists(path))
+        if (string.IsNullOrWhiteSpace(appPathOrEntry) || appPathOrEntry == ".")
         {
-            throw new DirectoryNotFoundException($"App VoltPy não encontrado: {path}");
+            return (_paths.AppDirectory, null);
         }
 
-        return path;
+        var raw = Path.IsPathRooted(appPathOrEntry)
+            ? appPathOrEntry
+            : Path.Combine(_paths.AppDirectory, appPathOrEntry);
+        var fullPath = Path.GetFullPath(raw);
+
+        if (File.Exists(fullPath))
+        {
+            return (Path.GetDirectoryName(fullPath)!, Path.GetFileName(fullPath));
+        }
+
+        if (Directory.Exists(fullPath))
+        {
+            return (fullPath, null);
+        }
+
+        // Treat unknown simple values as an entrypoint under the app root so
+        // App.py/main.py/teste.py discovery remains the default behavior.
+        return (_paths.AppDirectory, appPathOrEntry);
     }
 }

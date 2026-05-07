@@ -1,6 +1,6 @@
 """Controlled Flask facade prepared for VoltPy web apps."""
 
-from importing.hook import import_real_module
+from voltpy.importing.hook import import_real_module
 
 _flask = import_real_module("flask")
 

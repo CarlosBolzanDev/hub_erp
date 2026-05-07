@@ -3,15 +3,17 @@ using System.Text.Json.Serialization;
 namespace VoltPy.Runtime;
 
 /// <summary>
-/// Configuração serializável dos caminhos físicos da instalação VoltPy.
-/// Caminhos relativos são resolvidos contra <see cref="VoltPyRoot"/>; o próprio
-/// VoltPyRoot relativo é resolvido contra o diretório do arquivo de configuração
-/// ou contra o diretório de trabalho do host.
+/// Configuração serializável para a engine portátil. Normalmente nenhum arquivo
+/// é necessário: ao copiar a pasta VoltPy para dentro do app, a engine usa a
+/// própria pasta como raiz e o diretório pai como AppDirectory.
 /// </summary>
 public sealed record VoltPyPathOptions
 {
-    [JsonPropertyName("VoltPyRoot")]
-    public string? VoltPyRoot { get; init; }
+    [JsonPropertyName("EngineDirectory")]
+    public string? EngineDirectory { get; init; }
+
+    [JsonPropertyName("AppDirectory")]
+    public string? AppDirectory { get; init; }
 
     [JsonPropertyName("NamespaceDirectory")]
     public string? NamespaceDirectory { get; init; }
@@ -22,9 +24,6 @@ public sealed record VoltPyPathOptions
     [JsonPropertyName("PackagesDirectory")]
     public string? PackagesDirectory { get; init; }
 
-    [JsonPropertyName("AppsDirectory")]
-    public string? AppsDirectory { get; init; }
-
     [JsonPropertyName("LogsDirectory")]
     public string? LogsDirectory { get; init; }
 
@@ -33,9 +32,6 @@ public sealed record VoltPyPathOptions
 
     [JsonPropertyName("ConfigDirectory")]
     public string? ConfigDirectory { get; init; }
-
-    [JsonPropertyName("EngineDirectory")]
-    public string? EngineDirectory { get; init; }
 
     [JsonPropertyName("PythonExecutable")]
     public string? PythonExecutable { get; init; }

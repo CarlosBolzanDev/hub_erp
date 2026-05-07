@@ -7,7 +7,7 @@ namespace VoltPy.Service;
 /// <summary>
 /// Serviço/runtime em background sem dependências externas. O host pode ficar em
 /// uma pasta própria e apontar para uma instalação externa VoltPyRuntime via
-/// config/host.json, VOLTPY_ROOT ou --voltpy-root.
+/// VoltPy/config/runtime.json, VOLTPY_ENGINE_DIR ou --engine-dir.
 /// </summary>
 public sealed class VoltPyService
 {
@@ -22,7 +22,7 @@ public sealed class VoltPyService
 
     public static VoltPyService Create(CommandLineOptions options)
     {
-        var configuration = VoltPyConfigurationLoader.Load(options.ConfigFile, options.VoltPyRoot, AppContext.BaseDirectory);
+        var configuration = VoltPyConfigurationLoader.Load(options.ConfigFile, options.EngineDirectory, AppContext.BaseDirectory);
         var logger = new FileVoltPyLogger(configuration.Paths, "service");
         var runtimeHost = new PythonRuntimeHost(configuration.Paths, logger, configuration.RuntimeOptions with
         {
@@ -31,7 +31,7 @@ public sealed class VoltPyService
         var packageManager = new PackageManager(configuration.Paths, logger);
         var executor = new AppExecutor(configuration.Paths, new ManifestLoader(), packageManager, runtimeHost, logger);
 
-        logger.Info($"Host configurado. Fonte={configuration.SourceFile ?? "env/cli"}; VoltPyRoot={configuration.Paths.RootDirectory}; Namespace={configuration.Paths.NamespaceDirectory}; Apps={configuration.Paths.AppsDirectory}.");
+        logger.Info($"Host configurado. Fonte={configuration.SourceFile ?? "env/cli"}; Engine={configuration.Paths.EngineDirectory}; App={configuration.Paths.AppDirectory}; Namespace={configuration.Paths.NamespaceDirectory}.");
         return new VoltPyService(logger, executor);
     }
 
