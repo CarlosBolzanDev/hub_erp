@@ -1,9 +1,6 @@
 using VoltPy.Service;
 
-var app = args.FirstOrDefault(arg => !arg.StartsWith("--", StringComparison.Ordinal)) ?? "example_app";
-var devFallback = args.Contains("--dev-python-fallback", StringComparer.OrdinalIgnoreCase);
-var supervise = args.Contains("--supervise", StringComparer.OrdinalIgnoreCase);
-
+var options = CommandLineOptions.Parse(args);
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, eventArgs) =>
 {
@@ -13,10 +10,10 @@ Console.CancelKeyPress += (_, eventArgs) =>
 
 try
 {
-    var service = VoltPyService.Create(devFallback);
-    return supervise
-        ? await service.RunSupervisorAsync(app, TimeSpan.FromSeconds(5), cts.Token)
-        : await service.RunOnceAsync(app, cts.Token);
+    var service = VoltPyService.Create(options);
+    return options.Supervise
+        ? await service.RunSupervisorAsync(options.AppName, TimeSpan.FromSeconds(5), cts.Token)
+        : await service.RunOnceAsync(options.AppName, cts.Token);
 }
 catch (Exception ex)
 {

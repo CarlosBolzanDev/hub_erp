@@ -5,35 +5,34 @@ using VoltPy.Runtime;
 namespace VoltPy.Service;
 
 /// <summary>
-/// Serviço/runtime em background sem dependências externas. Em produção pode ser
-/// instalado por um wrapper de Windows Service apontando para VoltPy.Service.exe.
+/// Serviço/runtime em background sem dependências externas. O host pode ficar em
+/// uma pasta própria e apontar para uma instalação externa VoltPyRuntime via
+/// config/host.json, VOLTPY_ROOT ou --voltpy-root.
 /// </summary>
 public sealed class VoltPyService
 {
-    private readonly VoltPyPaths _paths;
     private readonly IVoltPyLogger _logger;
     private readonly AppExecutor _executor;
 
-    public VoltPyService(VoltPyPaths paths, IVoltPyLogger logger, AppExecutor executor)
+    public VoltPyService(IVoltPyLogger logger, AppExecutor executor)
     {
-        _paths = paths;
         _logger = logger;
         _executor = executor;
     }
 
-    public static VoltPyService Create(bool devPythonFallback = false)
+    public static VoltPyService Create(CommandLineOptions options)
     {
-        var paths = VoltPyPaths.Discover(Environment.CurrentDirectory);
-        paths.EnsureBaseDirectories();
-        var logger = new FileVoltPyLogger(paths, "service");
-        var runtimeHost = new PythonRuntimeHost(paths, logger, new PythonRuntimeOptions
+        var configuration = VoltPyConfigurationLoader.Load(options.ConfigFile, options.VoltPyRoot, AppContext.BaseDirectory);
+        var logger = new FileVoltPyLogger(configuration.Paths, "service");
+        var runtimeHost = new PythonRuntimeHost(configuration.Paths, logger, configuration.RuntimeOptions with
         {
-            HiddenWindow = true,
-            UseSystemPythonFallback = devPythonFallback,
+            UseSystemPythonFallback = options.DevPythonFallback || configuration.RuntimeOptions.UseSystemPythonFallback,
         });
-        var packageManager = new PackageManager(paths, logger);
-        var executor = new AppExecutor(paths, new ManifestLoader(), packageManager, runtimeHost, logger);
-        return new VoltPyService(paths, logger, executor);
+        var packageManager = new PackageManager(configuration.Paths, logger);
+        var executor = new AppExecutor(configuration.Paths, new ManifestLoader(), packageManager, runtimeHost, logger);
+
+        logger.Info($"Host configurado. Fonte={configuration.SourceFile ?? "env/cli"}; VoltPyRoot={configuration.Paths.RootDirectory}; Namespace={configuration.Paths.NamespaceDirectory}; Apps={configuration.Paths.AppsDirectory}.");
+        return new VoltPyService(logger, executor);
     }
 
     public async Task<int> RunOnceAsync(string appName, CancellationToken cancellationToken = default)

@@ -1,9 +1,12 @@
 {
-  "pythonVersion": "3.12",
-  "runtimeMode": "embedded-subprocess",
-  "allowSystemPythonFallback": false,
-  "namespace": "voltpy",
-  "logsDirectory": "Logs",
-  "appsDirectory": "Apps",
-  "packagesDirectory": "Packages"
+  "VoltPyRoot": "D:/VoltPyRuntime",
+  "NamespaceDirectory": "D:/VoltPyRuntime/VoltPy",
+  "RuntimeDirectory": "D:/VoltPyRuntime/Runtime",
+  "PackagesDirectory": "D:/VoltPyRuntime/Packages",
+  "AppsDirectory": "D:/VoltPyRuntime/Apps",
+  "LogsDirectory": "D:/VoltPyRuntime/Logs",
+  "TempDirectory": "D:/VoltPyRuntime/Temp",
+  "ConfigDirectory": "D:/VoltPyRuntime/Config",
+  "UseSystemPythonFallback": false,
+  "AdditionalPythonPath": []
 }

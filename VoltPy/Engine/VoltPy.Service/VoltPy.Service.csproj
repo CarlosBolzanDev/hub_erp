@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\VoltPy.Loader\VoltPy.Loader.csproj" />
+    <ProjectReference Include="..\VoltPy.Runtime\VoltPy.Runtime.csproj" />
+    <ProjectReference Include="..\VoltPy.Packages\VoltPy.Packages.csproj" />
   </ItemGroup>
 </Project>

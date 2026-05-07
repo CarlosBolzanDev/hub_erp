@@ -136,7 +136,10 @@ class VoltPyAuditLoader(importlib.abc.Loader):
 def install(namespace_dir: str | os.PathLike[str] | None = None) -> None:
     """Install VoltPy finders at the beginning of ``sys.meta_path``."""
     global _NAMESPACE_DIR
-    resolved = Path(namespace_dir or os.environ.get("VOLTPY_NAMESPACE", Path(__file__).resolve().parents[1])).resolve()
+    configured = namespace_dir or os.environ.get("VOLTPY_NAMESPACE")
+    if configured is None:
+        configured = Path(__file__).resolve().parents[1]
+    resolved = Path(configured).resolve()
     _NAMESPACE_DIR = resolved
 
     if not any(isinstance(finder, VoltPyPolicyFinder) for finder in sys.meta_path):
