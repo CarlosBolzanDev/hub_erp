@@ -1,0 +1,6 @@
+{
+  "name": "requests",
+  "version": "managed",
+  "module": "requests",
+  "enabled": true
+}

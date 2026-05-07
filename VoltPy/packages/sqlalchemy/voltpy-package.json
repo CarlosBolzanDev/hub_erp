@@ -1,0 +1,6 @@
+{
+  "name": "sqlalchemy",
+  "version": "managed",
+  "module": "sqlalchemy",
+  "enabled": true
+}

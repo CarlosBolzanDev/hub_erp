@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+VoltPy/logs/*.log
+VoltPy/temp/*
+!VoltPy/logs/.gitkeep
+!VoltPy/temp/.gitkeep
+VoltPy/runtime/python.exe
+VoltPy/runtime/python312.dll
+VoltPy/runtime/*.zip
+VoltPy/runtime/site-packages/*
+!VoltPy/runtime/site-packages/.gitkeep

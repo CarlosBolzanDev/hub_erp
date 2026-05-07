@@ -1,0 +1,11 @@
+{
+  "EngineDirectory": ".",
+  "AppDirectory": "..",
+  "NamespaceDirectory": "voltpy",
+  "RuntimeDirectory": "runtime",
+  "PackagesDirectory": "packages",
+  "LogsDirectory": "logs",
+  "TempDirectory": "temp",
+  "UseSystemPythonFallback": false,
+  "AdditionalPythonPath": []
+}
