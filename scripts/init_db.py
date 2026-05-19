@@ -1,3 +1,5 @@
-from bo_app.init_db import init_db
-init_db()
-print("Banco inicializado")
+from registro_operacional.app.database.init_db import init_db
+
+if __name__ == "__main__":
+    init_db()
+    print("Banco inicializado")
