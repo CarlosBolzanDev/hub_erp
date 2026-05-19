@@ -1,9 +1,13 @@
-import json, shutil, mimetypes
+import csv
+import json
+import shutil
+import mimetypes
 from datetime import datetime
 from pathlib import Path
 from sqlalchemy import text
-from PIL import ImageGrab, Image
-import pytesseract, requests
+from PIL import ImageGrab, Image, ImageDraw
+import pytesseract
+import requests
 from bs4 import BeautifulSoup
 from registro_operacional.app.config.settings import ATTACHMENTS_DIR, EXPORTS_DIR, BACKUPS_DIR, DB_PATH
 from registro_operacional.app.logging.logger import logger
@@ -17,20 +21,24 @@ class OccurrenceService:
 
     def open_occurrence(self, payload, user="operador"):
         code = f"OC-{datetime.utcnow().strftime('%Y%m%d')}-{int(datetime.utcnow().timestamp())%100000}"
-        payload = {**payload, "status": "Aberta", "code": code}
-        occ = self.repo.create(payload)
+        occ = self.repo.create({**payload, "status": "Aberta", "code": code})
         self._event(occ.id, "abertura", "Ocorrência aberta", occ.summary, user)
-        self._sync_fts(occ.id)
-        self.session.commit(); logger.info(f"ocorrencia aberta {occ.id}")
-        return occ
+        self._sync_fts(occ.id); self.session.commit(); return occ
+
+    def update_status(self, occurrence_id, status, note="", user="operador"):
+        occ = self.repo.get(occurrence_id); occ.status = status
+        if status == "Finalizada": occ.closed_at = datetime.utcnow(); occ.final_result = note
+        self._event(occ.id, "mudanca_status", f"Status alterado para {status}", note, user)
+        self._sync_fts(occ.id); self.session.commit()
 
     def finalize_occurrence(self, occurrence_id, final_result, user="operador"):
-        occ = self.repo.get(occurrence_id); occ.status = "Finalizada"; occ.closed_at = datetime.utcnow(); occ.final_result = final_result
-        self._event(occ.id, "finalizacao", "Ocorrência finalizada", final_result, user); self._sync_fts(occ.id); self.session.commit()
+        if not final_result.strip(): raise ValueError("Resultado final obrigatório")
+        self.update_status(occurrence_id, "Finalizada", final_result, user)
 
     def reopen_occurrence(self, occurrence_id, reason, user="operador"):
-        occ = self.repo.get(occurrence_id); occ.status = "Reaberta"; occ.closed_at = None
-        self._event(occ.id, "reabertura", "Ocorrência reaberta", reason, user); self._sync_fts(occ.id); self.session.commit()
+        if not reason.strip(): raise ValueError("Motivo obrigatório")
+        occ = self.repo.get(occurrence_id); occ.closed_at = None
+        self.update_status(occurrence_id, "Reaberta", reason, user)
 
     def _event(self, occ_id, t, title, desc, user="operador", meta=None):
         self.session.add(OccurrenceEvent(occurrence_id=occ_id, event_type=t, title=title, description=desc, created_by=user, metadata_json=json.dumps(meta or {})))
@@ -56,12 +64,12 @@ class OccurrenceService:
         self.session.add(Attachment(occurrence_id=occ_id, original_name=src.name, stored_name=stored, file_path=str(dst), file_type="image" if (mime or "").startswith("image/") else "file", mime_type=mime or "application/octet-stream", size_bytes=dst.stat().st_size, ocr_text=ocr, comment=comment, is_important=is_important))
         self._event(occ_id, "anexo", "Anexo adicionado", src.name); self._sync_fts(occ_id); self.session.commit()
 
-    def paste_print_from_clipboard(self, occ_id, comment="print clipboard"):
+    def paste_print_from_clipboard(self, occ_id, comment="print colado"):
         img = ImageGrab.grabclipboard()
         if hasattr(img, "save"):
             temp = ATTACHMENTS_DIR / f"_clipboard_{datetime.utcnow().timestamp()}.png"; img.save(temp)
             self.add_attachment(occ_id, str(temp), comment=comment, is_important=True)
-            self._event(occ_id, "print_anexado", "Print anexado", comment); self.session.commit(); return True
+            self._event(occ_id, "print_colado", "Print colado", comment); self.session.commit(); return True
         return False
 
     def add_raci_assignment(self, occ_id, name, role="", sector="", responsible=False, accountable=False, consulted=False, informed=False, note=""):
@@ -81,8 +89,21 @@ class OccurrenceService:
 
     def export_json(self, occ_id):
         occ = self.repo.get(occ_id)
-        out = EXPORTS_DIR / f"occ_{occ_id}.json"
-        out.write_text(json.dumps({"id":occ.id, "code":occ.code, "title":occ.title, "summary":occ.summary, "status":occ.status, "final_result":occ.final_result}, ensure_ascii=False, indent=2))
+        out = EXPORTS_DIR / f"ocorrencia_{occ_id}.json"
+        out.write_text(json.dumps({"dados": occ.title, "status": occ.status, "resultado_final": occ.final_result}, ensure_ascii=False, indent=2))
+        return out
+
+    def export_csv(self, occ_id):
+        occ = self.repo.get(occ_id)
+        out = EXPORTS_DIR / f"ocorrencia_{occ_id}.csv"
+        with out.open("w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f); w.writerow(["id","codigo","titulo","status","resultado_final"]); w.writerow([occ.id, occ.code, occ.title, occ.status, occ.final_result])
+        return out
+
+    def export_pdf(self, occ_id):
+        out = EXPORTS_DIR / f"ocorrencia_{occ_id}.pdf"
+        img = Image.new("RGB", (1200, 1600), "white"); d = ImageDraw.Draw(img); d.text((40, 40), f"Ocorrência {occ_id}", fill="black")
+        img.save(out, "PDF")
         return out
 
     def backup_database(self):

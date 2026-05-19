@@ -1,24 +1,30 @@
-# Registro Operacional (Ocorrências)
+# Registro Operacional de Decisões e Evidências
 
-Sistema desktop local-first para gestão de ocorrências operacionais com timeline, anexos, links, RACI, busca FTS5 e auditoria.
+Aplicativo desktop local-first para gestão de **Ocorrências** com ciclo de vida, timeline, anexos, links, RACI, busca FTS5 e exportação.
 
-## Stack
-Python 3.11+, PySide6, SQLite, SQLAlchemy 2.x, Alembic, FTS5, Pillow, pytesseract, requests, BeautifulSoup4, pydantic, loguru, qdarktheme, pytest.
+## Instalação
+```bash
+pip install -e .[dev]
+```
 
 ## Executar
 ```bash
-pip install -r requirements.txt
 python -m registro_operacional.app.main
 ```
 
-## Migrações
-Estrutura Alembic incluída em `alembic/`. Banco inicializa automaticamente na execução.
+## Fluxos principais
+- Nova ocorrência (status inicial: **Aberta**)
+- Abrir ocorrência (muda para **Em andamento**)
+- Finalizar ocorrência (exige resultado final)
+- Reabrir ocorrência (via serviço)
+- Colar print (clipboard) na ocorrência
+- Anexar arquivos e links
+- Consultar timeline e aba RACI
+- Exportar JSON + CSV + PDF
 
-## Funcionalidades implementadas
-- Abertura, finalização e reabertura de ocorrência com eventos de timeline.
-- Busca global via FTS5 (ocorrência, eventos, OCR, links e nomes RACI).
-- Anexos por upload, OCR opcional e print via clipboard.
-- Links com captura de metadados.
-- Aba RACI com associação de pessoas e papéis.
-- Exportação JSON e backup de banco.
-- UI com abas: Resumo, Timeline, Anexos, Links, RACI, Histórico, Observações.
+## Status suportados
+- Aberta
+- Em andamento
+- Pendente
+- Finalizada
+- Reaberta

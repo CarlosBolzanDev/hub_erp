@@ -11,7 +11,7 @@ class Occurrence(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     category: Mapped[str] = mapped_column(String(120), default="")
     subcategory: Mapped[str] = mapped_column(String(120), default="")
-    status: Mapped[str] = mapped_column(String(32), default="Aberta")
+    status: Mapped[str] = mapped_column(String(32), default="Aberta")  # Aberta, Em andamento, Pendente, Finalizada, Reaberta
     priority: Mapped[str] = mapped_column(String(32), default="Média")
     sector: Mapped[str] = mapped_column(String(120), default="")
     owner: Mapped[str] = mapped_column(String(120), default="")
