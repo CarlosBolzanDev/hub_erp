@@ -1,0 +1,3 @@
+"use client";
+import { useState } from "react"; import { useRouter } from "next/navigation"; import { Button } from "@/components/ui/Button"; import { Modal } from "@/components/ui/Modal"; import { PropertyForm } from "./PropertyForm"; import type { Property } from "@/types/property";
+export function PropertyEditButton({ property }: { property: Property }) { const [open,setOpen]=useState(false); const router=useRouter(); return <><Button onClick={()=>setOpen(true)}>Editar</Button><Modal open={open} title="Editar Imóvel" onClose={()=>setOpen(false)}><PropertyForm property={property} onSaved={()=>{setOpen(false);router.refresh();}}/></Modal></>; }

@@ -1,0 +1,17 @@
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS price NUMERIC(12,2), ADD COLUMN IF NOT EXISTS sold_price NUMERIC(12,2), ADD COLUMN IF NOT EXISTS installments_count INTEGER;
+CREATE TABLE IF NOT EXISTS property_installments (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE, installment_number INTEGER NOT NULL, amount NUMERIC(12,2) NOT NULL, due_date DATE NOT NULL, payment_date DATE, status VARCHAR(20) DEFAULT 'PENDENTE' CHECK (status IN ('PENDENTE','PAGO','ATRASADO')), comprovante_url TEXT, notes TEXT, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS property_contracts (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE UNIQUE, file_url TEXT NOT NULL, file_type VARCHAR(50), created_at TIMESTAMPTZ DEFAULT NOW());
+INSERT INTO storage.buckets (id, name, public) VALUES ('contratos','contratos', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('comprovantes','comprovantes', true) ON CONFLICT (id) DO NOTHING;
+DROP POLICY IF EXISTS "Authenticated read contratos" ON storage.objects;
+CREATE POLICY "Authenticated read contratos" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'contratos');
+DROP POLICY IF EXISTS "Authenticated upload contratos" ON storage.objects;
+CREATE POLICY "Authenticated upload contratos" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'contratos');
+DROP POLICY IF EXISTS "Authenticated update contratos" ON storage.objects;
+CREATE POLICY "Authenticated update contratos" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'contratos');
+DROP POLICY IF EXISTS "Authenticated read comprovantes" ON storage.objects;
+CREATE POLICY "Authenticated read comprovantes" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'comprovantes');
+DROP POLICY IF EXISTS "Authenticated upload comprovantes" ON storage.objects;
+CREATE POLICY "Authenticated upload comprovantes" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'comprovantes');
+DROP POLICY IF EXISTS "Authenticated update comprovantes" ON storage.objects;
+CREATE POLICY "Authenticated update comprovantes" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'comprovantes');
