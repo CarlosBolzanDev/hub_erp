@@ -1,0 +1,3 @@
+"use client";
+import { useState } from "react"; import { useRouter } from "next/navigation"; import { Plus } from "lucide-react"; import { Button } from "@/components/ui/Button"; import { Modal } from "@/components/ui/Modal"; import { PropertyForm } from "./PropertyForm";
+export function PropertyCreateButton() { const [open,setOpen]=useState(false); const router=useRouter(); return <><Button onClick={()=>setOpen(true)}><Plus size={16}/> Novo Imóvel</Button><Modal open={open} title="Novo Imóvel" onClose={()=>setOpen(false)}><PropertyForm onSaved={()=>{setOpen(false);router.refresh();}}/></Modal></>; }

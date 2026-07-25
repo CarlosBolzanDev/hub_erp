@@ -1,0 +1,3 @@
+"use client";
+import { ReactNode } from "react";
+export function Modal({ open, title, children, onClose }: { open: boolean; title: string; children: ReactNode; onClose: () => void }) { if (!open) return null; return <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"><div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl bg-white p-6 shadow-xl animate-fade-up dark:bg-slate-900"><div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">{title}</h2><button onClick={onClose} className="rounded p-2 hover:bg-slate-100 dark:hover:bg-slate-800">✕</button></div>{children}</div></div>; }
