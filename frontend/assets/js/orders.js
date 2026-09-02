@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded', () => { if (document.body.dataset.page !== 'orders') return; document.querySelector('#page-content').innerHTML = '<article class="card placeholder"><div><div class="placeholder-icon">⌛</div><h2>Módulo em desenvolvimento</h2><p>O módulo de Orders está preparado para uma próxima etapa.</p></div></article>'; });
