@@ -1,0 +1,6 @@
+@import url("./variables.css");
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-background); color: var(--color-text); font: 15px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; }
+button, input { font: inherit; }
+a { color: inherit; }
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }

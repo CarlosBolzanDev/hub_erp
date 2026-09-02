@@ -1,0 +1,3 @@
+const API_BASE=localStorage.getItem('apiBase')||'http://localhost:8000';
+export async function apiRequest(path,options={}){const token=localStorage.getItem('accessToken');const response=await fetch(`${API_BASE}${path}`,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`} : {}),...options.headers}});if(response.status===204)return null;const data=await response.json().catch(()=>({}));if(!response.ok){if(response.status===401){localStorage.removeItem('accessToken');location.href=location.pathname.includes('/dashboard')?'../login.html':'login.html'}throw new Error(data.detail||'Não foi possível concluir esta ação.')}return data}
+export {API_BASE};

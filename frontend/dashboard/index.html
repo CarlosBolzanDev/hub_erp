@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard | Biply</title>
+  <link rel="stylesheet" href="../assets/css/global.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/layout.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+  <link rel="stylesheet" href="../assets/css/dashboard.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="mobile-header"><button id="menu-toggle" aria-label="Abrir menu">☰</button><strong>Biply</strong><span aria-hidden="true">●</span></header>
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="../dashboard/"><span class="brand-mark">B</span>Biply</a>
+      <nav class="nav" aria-label="Navegação principal">
+        <a href="../dashboard/" class="active" aria-current="page">⌂ &nbsp; Dashboard</a>
+        <a href="../orders/" >▣ &nbsp; Pedidos</a>
+        <a href="../users/" >♙ &nbsp; Usuários</a>
+        <a href="../picking/" >⌁ &nbsp; Picking</a>
+      </nav>
+      <div class="sidebar-footer">
+        <nav class="nav" aria-label="Configurações"><a href="../settings/" >⚙ &nbsp; Configurações</a></nav>
+        <button class="theme-button" id="theme-toggle" type="button">◐ &nbsp; Alternar tema</button>
+        <div class="user-box"><small>Usuário atual</small><strong id="current-user">Carregando…</strong><button class="theme-button" id="logout-button" type="button">Sair</button></div>
+      </div>
+    </aside>
+    <main class="main"><section class="page-head"><h1 id="greeting">Olá</h1><p>Visão inicial da sua operação.</p></section><section class="metrics" aria-label="Resumo operacional"><article class="card metric"><span>Pedidos</span><strong>0</strong><small>Aguardando o módulo</small></article><article class="card metric"><span>Pendentes</span><strong>0</strong><small>Aguardando o módulo</small></article><article class="card metric"><span>Picking</span><strong>0</strong><small>Aguardando o módulo</small></article><article class="card metric"><span>Finalizados</span><strong>0</strong><small>Aguardando o módulo</small></article></section></main>
+  </div>
+  <script type="module" src="../assets/js/app.js"></script>
+  <script type="module" src="../assets/js/dashboard.js"></script>
+</body>
+</html>

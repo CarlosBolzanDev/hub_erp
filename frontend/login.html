@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar | Biply</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/login.css">
+</head>
+<body class="login-page">
+  <main class="login-card" aria-labelledby="login-title">
+    <a class="brand" href="login.html"><span class="brand-mark">B</span>Biply</a>
+    <h1 id="login-title">Bem-vindo de volta</h1>
+    <p>Entre na sua conta para continuar.</p>
+    <form id="login-form">
+      <label for="email">E-mail</label><input class="field" id="email" name="email" type="email" autocomplete="email" required>
+      <label for="password">Senha</label><input class="field" id="password" name="password" type="password" autocomplete="current-password" required>
+      <p class="form-error" id="login-error" role="alert"></p>
+      <button class="button" type="submit">Entrar</button>
+    </form>
+    <a class="help-link" href="mailto:suporte@biply.local">Esqueci minha senha</a>
+  </main>
+  <script type="module" src="assets/js/login.js"></script>
+</body>
+</html>
