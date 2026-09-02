@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded', async () => { initializeTheme(); if (document.body.dataset.protected === 'true') { const user = await requireAuth(); if (!user) return; renderNavigation(user); } });
