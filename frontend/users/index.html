@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usuários | Biply</title>
+  <link rel="stylesheet" href="../assets/css/global.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/layout.css">
+  <link rel="stylesheet" href="../assets/css/responsive.css">
+  <link rel="stylesheet" href="../assets/css/users.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="mobile-header"><button id="menu-toggle" aria-label="Abrir menu">☰</button><strong>Biply</strong><span aria-hidden="true">●</span></header>
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="../dashboard/"><span class="brand-mark">B</span>Biply</a>
+      <nav class="nav" aria-label="Navegação principal">
+        <a href="../dashboard/" >⌂ &nbsp; Dashboard</a>
+        <a href="../orders/" >▣ &nbsp; Pedidos</a>
+        <a href="../users/" class="active" aria-current="page">♙ &nbsp; Usuários</a>
+        <a href="../picking/" >⌁ &nbsp; Picking</a>
+      </nav>
+      <div class="sidebar-footer">
+        <nav class="nav" aria-label="Configurações"><a href="../settings/" >⚙ &nbsp; Configurações</a></nav>
+        <button class="theme-button" id="theme-toggle" type="button">◐ &nbsp; Alternar tema</button>
+        <div class="user-box"><small>Usuário atual</small><strong id="current-user">Carregando…</strong><button class="theme-button" id="logout-button" type="button">Sair</button></div>
+      </div>
+    </aside>
+    <main class="main"><section class="page-head"><h1>Usuários</h1><p>Estrutura preparada para as próximas etapas do Biply.</p></section><section class="card placeholder-card"><h2>Módulo em desenvolvimento</h2><p>Este módulo ainda não possui funcionalidades ou dados simulados. A navegação e o design já estão prontos para a futura implementação.</p></section></main>
+  </div>
+  <script type="module" src="../assets/js/app.js"></script>
+  <script type="module" src="../assets/js/users.js"></script>
+</body>
+</html>
